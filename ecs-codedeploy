@@ -64,7 +64,7 @@ function assert_is_installed {
 }
 
 function assumeRole() {
-  temp_role=$(aws sts assume-role --profile default \
+  temp_role=$(aws sts assume-role --profile \
                   --role-arn "${AWS_ASSUME_ROLE}" \
                   --role-session-name "$(date +"%s")")
 
