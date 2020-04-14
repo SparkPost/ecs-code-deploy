@@ -129,7 +129,7 @@ Resources:
     Properties:
       TaskDefinition: PlaceholderForTaskDefinition
       LoadBalancerInfo:
-        ContainerName: 'events-api-usw2-tst'
+        ContainerName: ${service}
         ContainerPort: 3001
 " > $APPSPEC_FILENAME
 }
