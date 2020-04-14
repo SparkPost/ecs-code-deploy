@@ -129,7 +129,7 @@ Resources:
     Properties:
       TaskDefinition: PlaceholderForTaskDefinition
       LoadBalancerInfo:
-        ContainerName: ${service}
+        ContainerName: ${container_name}
         ContainerPort: 3001
 " > $APPSPEC_FILENAME
 }
