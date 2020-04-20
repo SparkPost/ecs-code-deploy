@@ -27,6 +27,7 @@ function print_usage {
   echo "Required arguments:"
   echo
   echo -e "  --cluster\t\t\tName of ECS Cluster"
+  echo -e "  --region\t\t\tName of ECS region"
   echo -e "  --service\t\t\tName of ECS Service to update"
   echo -e "  --image\t\t\tImage ID to deploy (eg, 640673857988.dkr.ecr.eu-central-1.amazonaws.com/backend:v1.2.3)"
   echo -e "  --deploy_app\t\t\tCodeDeploy application"
@@ -40,7 +41,7 @@ function print_usage {
   echo
   echo "Examples:"
   echo
-  echo "  ecs-codedeploy --iam-role arn:aws:iam::604506250246:role/ecs-deploy --cluster production --service backend --image 640673857988.dkr.ecr.eu-central-1.amazonaws.com/backend:v1.2.3"
+  echo "  ecs-codedeploy --iam-role arn:aws:iam::604506250246:role/ecs-deploy --cluster production --region us-west-2 --service backend --image 640673857988.dkr.ecr.eu-central-1.amazonaws.com/backend:v1.2.3"
 }
 
 function assert_not_empty {
@@ -80,7 +81,7 @@ function assumeRoleClean() {
 }
 
 function get_current_task_definition() {
-  TASK_DEFINITION_ARN=$(aws ecs describe-services --services "$service" --cluster "$cluster" | jq -r ".services[0].taskDefinition")
+  TASK_DEFINITION_ARN=$(aws ecs describe-services --services "$service" --cluster "$cluster" --region "$region" | jq -r ".services[0].taskDefinition")
   TASK_DEFINITION=$(aws ecs describe-task-definition --task-def "$TASK_DEFINITION_ARN")
 }
 
@@ -137,6 +138,7 @@ Resources:
 function ecs_deploy_service() {
   aws ecs deploy \
           --cluster "$cluster" \
+          --region "$region" \
           --service "$service" \
           --task-definition "$TASK_DEF_FILENAME" \
           --codedeploy-appspec "$APPSPEC_FILENAME" \
@@ -152,6 +154,7 @@ function ecs_deploy {
   assert_is_installed "jq"
 
   local cluster=""
+  local region=""
   local service=""
   local deploy_app=""
   local container_name=""
@@ -170,6 +173,10 @@ function ecs_deploy {
         ;;
       --cluster)
         cluster="$2"
+        shift
+        ;;
+      --region)
+        region="$2"
         shift
         ;;
       --service)
@@ -211,6 +218,7 @@ function ecs_deploy {
   done
 
   assert_not_empty "--cluster" "$cluster"
+  assert_not_empty "--region" "$region"
   assert_not_empty "--service" "$service"
   assert_not_empty "--image" "$image"
   assert_not_empty "--deploy_app" "$deploy_app"
@@ -222,6 +230,7 @@ function ecs_deploy {
   local AWS_ASSUME_ROLE=${iam_role:-${AWS_ROLE_TO_ASSUME_DURING_DEPLOY:-false}}
 
   echo "Cluster: $cluster"
+  echo "Region: $region"
   echo "Service: $service"
   echo "Image: $image"
   echo
