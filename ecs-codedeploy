@@ -82,7 +82,8 @@ function assumeRoleClean() {
 
 function get_current_task_definition() {
   TASK_DEFINITION_ARN=$(aws ecs describe-services --services "$service" --cluster "$cluster" --region "$region" | jq -r ".services[0].taskDefinition")
-  TASK_DEFINITION=$(aws ecs describe-task-definition --task-def "$TASK_DEFINITION_ARN")
+  echo $TASK_DEFINITION_ARN
+  TASK_DEFINITION=$(aws ecs describe-task-definition --region "$region" --task-def "$TASK_DEFINITION_ARN")
 }
 
 function create_new_task_def_json() {
