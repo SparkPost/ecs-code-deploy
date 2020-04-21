@@ -140,6 +140,7 @@ function ecs_deploy_service() {
   aws ecs deploy \
           --cluster "$cluster" \
           --cli-connect-timeout 0 \
+          --cli-read-timeout 0 \
           --region "$region" \
           --service "$service" \
           --task-definition "$TASK_DEF_FILENAME" \
