@@ -136,15 +136,47 @@ Resources:
 " > $APPSPEC_FILENAME
 }
 
+# function ecs_deploy_service() {
+#   aws ecs deploy \
+#           --cluster "$cluster" \
+#           --region "$region" \
+#           --service "$service" \
+#           --task-definition "$TASK_DEF_FILENAME" \
+#           --codedeploy-appspec "$APPSPEC_FILENAME" \
+#           --codedeploy-application "$deploy_app" \
+#           --codedeploy-deployment-group "$deploy_group"
+# }
+
 function ecs_deploy_service() {
-  aws ecs deploy \
-          --cluster "$cluster" \
-          --region "$region" \
-          --service "$service" \
-          --task-definition "$TASK_DEF_FILENAME" \
-          --codedeploy-appspec "$APPSPEC_FILENAME" \
-          --codedeploy-application "$deploy_app" \
-          --codedeploy-deployment-group "$deploy_group"
+DEPLOY_WAIT_TIME=`aws deploy get-deployment-group \
+    --application-name AppECS-ecs51v-events-api-final-v-2-usw2-tst \
+    --deployment-group-name DgpECS-ecs51v-events-api-final-v-2-usw2-tst \
+    --region us-west-2 \
+    --query "deploymentGroupInfo.blueGreenDeploymentConfiguration.terminateBlueInstancesOnDeploymentSuccess.terminationWaitTimeInMinutes" \
+    --output text \
+    --profile default`
+
+TOTAL_WAIT_TIME_MINUTES=$((DEPLOY_WAIT_TIME + 15))
+TOTAL_WAIT_TIME_SECONDS=$(((DEPLOY_WAIT_TIME + 15) * 60))
+
+  deployment_id = `aws deploy create-deployment \
+        --application-name "$deploy_app" \
+        --deployment-group-name "$deploy_group" \
+        --region "$region" \
+        --deployment-config-name CodeDeployDefault.ECSLinear10PercentEvery1Minutes \
+        --description "Events API Blue/Green Deploy" \
+        --revision '{"revisionType": "AppSpecContent", "appSpecContent": {"content": "{\"version\": 1, \"Resources\": [{\"TargetService\": {\"Type\": \"AWS::ECS::Service\", \"Properties\": {\"TaskDefinition\": \"'${TASK_DEFINITION_ARN}'\", \"LoadBalancerInfo\": {\"ContainerName\": \"'${container_name}'\", \"ContainerPort\": 3001}}}}]}"}}' \
+        --query "deploymentId" \
+        --output text`
+
+  echo "waiting ${TOTAL_WAIT_TIME_MINUTES} minutes for the deploy to complete"
+  sleep ${TOTAL_WAIT_TIME_SECONDS}
+
+  echo "checking for deploy completion..."     
+  aws deploy wait deployment-successful --deployment-id "$deployment_id" --region "$region"
+
+  echo "deployment complete." 
+
 }
 
 #function waitDeployment() {
