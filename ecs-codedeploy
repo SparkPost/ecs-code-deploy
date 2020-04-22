@@ -22,7 +22,7 @@ function print_usage {
   echo
   echo "This script performs deployment of ECS Service using AWS CodeDeploy."
   echo
-  echo "'aws ecs deploy' should be used, as described here: https://docs.aws.amazon.com/cli/latest/reference/ecs/deploy/index.html"
+  echo "'aws deploy create-deployment' should be used, as described here: https://docs.aws.amazon.com/cli/latest/reference/deploy/create-deployment.html"
   echo
   echo "Required arguments:"
   echo
@@ -33,11 +33,8 @@ function print_usage {
   echo -e "  --deploy_app\t\t\tCodeDeploy application"
   echo -e "  --container_name\t\t\tName of Container to deploy"
   echo -e "  --container_port\t\t\tPort of the Container to deploy"
-  echo -e "  --deploy_group\t\t\Group of the CodeDeploy Application"
+  echo -e "  --deploy_group\t\t\tGroup of the CodeDeploy Application"
   echo
-  echo "Optional arguments:"
-  echo
-  echo -e "  --iam-role\t\t\tAWS IAM role to assume before deployment"
   echo
   echo "Examples:"
   echo
@@ -135,17 +132,6 @@ Resources:
         ContainerPort: 3001
 " > $APPSPEC_FILENAME
 }
-
-# function ecs_deploy_service() {
-#   aws ecs deploy \
-#           --cluster "$cluster" \
-#           --region "$region" \
-#           --service "$service" \
-#           --task-definition "$TASK_DEF_FILENAME" \
-#           --codedeploy-appspec "$APPSPEC_FILENAME" \
-#           --codedeploy-application "$deploy_app" \
-#           --codedeploy-deployment-group "$deploy_group"
-# }
 
 function ecs_deploy_service() {
 DEPLOY_WAIT_TIME=`aws deploy get-deployment-group \
