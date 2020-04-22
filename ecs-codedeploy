@@ -149,9 +149,9 @@ Resources:
 
 function ecs_deploy_service() {
 DEPLOY_WAIT_TIME=`aws deploy get-deployment-group \
-    --application-name AppECS-ecs51v-events-api-final-v-2-usw2-tst \
-    --deployment-group-name DgpECS-ecs51v-events-api-final-v-2-usw2-tst \
-    --region us-west-2 \
+    --application-name "$deploy_app" \
+    --deployment-group-name "$deploy_group" \
+    --region "$region" \
     --query "deploymentGroupInfo.blueGreenDeploymentConfiguration.terminateBlueInstancesOnDeploymentSuccess.terminationWaitTimeInMinutes" \
     --output text`
 
@@ -168,6 +168,7 @@ DEPLOYMENT_ID=`aws deploy create-deployment \
         --query "deploymentId" \
         --output text`
 
+  #todo - add a timestamp here
   echo "waiting ${TOTAL_WAIT_TIME_MINUTES} minutes for the deploy to complete"
   sleep ${TOTAL_WAIT_TIME_SECONDS}
 
