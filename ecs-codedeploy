@@ -153,8 +153,7 @@ DEPLOY_WAIT_TIME=`aws deploy get-deployment-group \
     --deployment-group-name DgpECS-ecs51v-events-api-final-v-2-usw2-tst \
     --region us-west-2 \
     --query "deploymentGroupInfo.blueGreenDeploymentConfiguration.terminateBlueInstancesOnDeploymentSuccess.terminationWaitTimeInMinutes" \
-    --output text \
-    --profile default`
+    --output text`
 
 TOTAL_WAIT_TIME_MINUTES=$((DEPLOY_WAIT_TIME + 15))
 TOTAL_WAIT_TIME_SECONDS=$(((DEPLOY_WAIT_TIME + 15) * 60))
