@@ -158,7 +158,7 @@ DEPLOY_WAIT_TIME=`aws deploy get-deployment-group \
 TOTAL_WAIT_TIME_MINUTES=$((DEPLOY_WAIT_TIME + 15))
 TOTAL_WAIT_TIME_SECONDS=$(((DEPLOY_WAIT_TIME + 15) * 60))
 
-  deployment_id = `aws deploy create-deployment \
+DEPLOYMENT_ID=`aws deploy create-deployment \
         --application-name "$deploy_app" \
         --deployment-group-name "$deploy_group" \
         --region "$region" \
@@ -172,7 +172,7 @@ TOTAL_WAIT_TIME_SECONDS=$(((DEPLOY_WAIT_TIME + 15) * 60))
   sleep ${TOTAL_WAIT_TIME_SECONDS}
 
   echo "checking for deploy completion..."     
-  aws deploy wait deployment-successful --deployment-id "$deployment_id" --region "$region"
+  aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID" --region "$region"
 
   echo "deployment complete." 
 
