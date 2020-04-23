@@ -38,7 +38,7 @@ function print_usage {
   echo
   echo "Examples:"
   echo
-  echo "  ecs-codedeploy --iam-role arn:aws:iam::604506250246:role/ecs-deploy --cluster production --region us-west-2 --service backend --image 640673857988.dkr.ecr.eu-central-1.amazonaws.com/backend:v1.2.3"
+  echo "  ecs-codedeploy --cluster production --region us-west-2 --service backend --image 640673857988.dkr.ecr.eu-central-1.amazonaws.com/backend:v1.2.3"
 }
 
 function assert_not_empty {
@@ -119,6 +119,7 @@ function create_task_def_file() {
   echo "$NEW_DEF" > $TASK_DEF_FILENAME
 }
 
+# The PlaceholderForTaskDefinition placeholder will be updated within the appspec with the newly registered task definition ARN
 function create_app_spec_file() {
   echo "---
 version: 1
@@ -133,7 +134,20 @@ Resources:
 " > $APPSPEC_FILENAME
 }
 
+# one liner that deploys based on aws ecs deploy, change line 298 if you would like to use this
+# https://docs.aws.amazon.com/cli/latest/reference/ecs/deploy/index.html
 function ecs_deploy_service() {
+  aws ecs deploy \
+          --cluster "$cluster" \
+          --region "$region" \
+          --service "$service" \
+          --task-definition "$TASK_DEF_FILENAME" \
+          --codedeploy-appspec "$APPSPEC_FILENAME" \
+          --codedeploy-application "$deploy_app" \
+          --codedeploy-deployment-group "$deploy_group"
+}
+
+function ecs_create_deployment() {
 DEPLOY_WAIT_TIME=`aws deploy get-deployment-group \
     --application-name "$deploy_app" \
     --deployment-group-name "$deploy_group" \
@@ -284,7 +298,7 @@ function ecs_deploy {
   echo
 
   echo "Deploy ECS service"
-  ecs_deploy_service
+  ecs_create_deployment
   echo "Done!"
 
 
