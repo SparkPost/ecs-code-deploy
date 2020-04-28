@@ -119,6 +119,17 @@ function create_task_def_file() {
   echo "$NEW_DEF" > $TASK_DEF_FILENAME
 }
 
+function register_new_task_definition() {
+    # Register the new task definition, and store its ARN
+    NEW_TASKDEF=`aws ecs register-task-definition --region "$region" --cli-input-json "$NEW_DEF" | jq -r .taskDefinition.taskDefinitionArn`
+}
+
+function updateService() {
+   # Update the service
+    aws ecs update-service --cluster "$cluster" --region "$region" --service "$service" --task-definition "$NEW_TASKDEF"
+    echo "Service updated successfully, starting new deploy"
+}
+
 # The PlaceholderForTaskDefinition placeholder will be updated within the appspec with the newly registered task definition ARN
 function create_app_spec_file() {
   echo "---
@@ -287,6 +298,9 @@ function ecs_deploy {
   echo "Created"
   echo
 
+  register_new_task_definition
+  echo "New task definition: $NEW_TASKDEF";
+
   echo "Create file $TASK_DEF_FILENAME"
   create_task_def_file
   echo "Created"
@@ -295,6 +309,11 @@ function ecs_deploy {
   echo "Create file $APPSPEC_FILENAME"
   create_app_spec_file
   echo "Created"
+  echo
+
+  echo "Updating service"
+  updateService
+  echo "Updated"
   echo
 
   echo "Deploy ECS service"
