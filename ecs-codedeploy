@@ -169,7 +169,7 @@ DEPLOYMENT_ID=`aws deploy create-deployment \
         --region "$region" \
         --deployment-config-name CodeDeployDefault.ECSLinear10PercentEvery1Minutes \
         --description "Events API Blue/Green Deploy" \
-        --revision '{"revisionType": "AppSpecContent", "appSpecContent": {"content": "{\"version\": 1, \"Resources\": [{\"TargetService\": {\"Type\": \"AWS::ECS::Service\", \"Properties\": {\"TaskDefinition\": \"'${TASK_DEFINITION_ARN}'\", \"LoadBalancerInfo\": {\"ContainerName\": \"'${container_name}'\", \"ContainerPort\": 3001}}}}]}"}}' \
+        --revision '{"revisionType": "AppSpecContent", "appSpecContent": {"content": "{\"version\": 1, \"Resources\": [{\"TargetService\": {\"Type\": \"AWS::ECS::Service\", \"Properties\": {\"TaskDefinition\": \"'${NEW_TASKDEF}'\", \"LoadBalancerInfo\": {\"ContainerName\": \"'${container_name}'\", \"ContainerPort\": 3001}}}}]}"}}' \
         --query "deploymentId" \
         --output text`
 
