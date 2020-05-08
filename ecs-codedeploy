@@ -173,9 +173,9 @@ DEPLOYMENT_ID=`aws deploy create-deployment \
         --query "deploymentId" \
         --output text`
 
-  #todo - add a timestamp here
+  #todo - add a timestamp here - restore
   echo "waiting ${TOTAL_WAIT_TIME_MINUTES} minutes for the deploy to complete"
-  sleep ${TOTAL_WAIT_TIME_SECONDS}
+  #sleep ${TOTAL_WAIT_TIME_SECONDS}
 
   echo "checking for deploy completion..."     
   aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID" --region "$region"
