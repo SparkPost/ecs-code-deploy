@@ -304,6 +304,7 @@ function ecs_deploy {
 
   register_new_task_definition
   echo "New task definition: $NEW_TASKDEF";
+  assert_not_empty "NEW_TASKDEF" "$NEW_TASKDEF"
 
   echo "Create file $TASK_DEF_FILENAME"
   create_task_def_file
