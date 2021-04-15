@@ -167,9 +167,9 @@ DEPLOYMENT_ID=`aws deploy create-deployment \
         --application-name "$deploy_app" \
         --deployment-group-name "$deploy_group" \
         --region "$region" \
-        --deployment-config-name CodeDeployDefault.ECSLinear10PercentEvery1Minutes \
-        --description "Events API Blue/Green Deploy" \
-        --revision '{"revisionType": "AppSpecContent", "appSpecContent": {"content": "{\"version\": 1, \"Resources\": [{\"TargetService\": {\"Type\": \"AWS::ECS::Service\", \"Properties\": {\"TaskDefinition\": \"'${NEW_TASKDEF}'\", \"LoadBalancerInfo\": {\"ContainerName\": \"'${container_name}'\", \"ContainerPort\": 3001}}}}]}"}}' \
+        --deployment-config-name "$deployment_config_name" \
+        --description "$service Blue/Green Deploy" \
+        --revision '{"revisionType": "AppSpecContent", "appSpecContent": {"content": "{\"version\": 1, \"Resources\": [{\"TargetService\": {\"Type\": \"AWS::ECS::Service\", \"Properties\": {\"TaskDefinition\": \"'${NEW_TASKDEF}'\", \"LoadBalancerInfo\": {\"ContainerName\": \"'${container_name}'\", \"ContainerPort\":'${container_port}'}}}}]}"}}' \
         --query "deploymentId" \
         --output text`
 
@@ -200,11 +200,16 @@ function ecs_deploy {
   local deploy_group=""
   local image=""
   local iam_role=""
+  local deployment_config_name=""
 
   while [[ $# > 0 ]]; do
     local key="$1"
 
     case "$key" in
+      --deployment_config_name)
+        deployment_config_name="$2"
+        shift
+        ;;
       --iam-role)
         iam_role="$2"
         shift
@@ -264,6 +269,10 @@ function ecs_deploy {
   assert_not_empty "--container_port" "$container_port"
   assert_not_empty "--deploy_group" "$deploy_group"
 
+  if [[ -z "$deployment_config_name" ]]; then
+    deployment_config_name="CodeDeployDefault.ECSLinear10PercentEvery1Minutes"
+  fi
+
   # Use specified IAM role or the one which comes from global env variables
   local AWS_ASSUME_ROLE=${iam_role:-${AWS_ROLE_TO_ASSUME_DURING_DEPLOY:-false}}
 
@@ -271,6 +280,7 @@ function ecs_deploy {
   echo "Region: $region"
   echo "Service: $service"
   echo "Image: $image"
+  echo "Deployment_config_name: $deployment_config_name"
   echo
 
 
