@@ -160,8 +160,8 @@ DEPLOY_WAIT_TIME=`aws deploy get-deployment-group \
     --query "deploymentGroupInfo.blueGreenDeploymentConfiguration.terminateBlueInstancesOnDeploymentSuccess.terminationWaitTimeInMinutes" \
     --output text`
 
-TOTAL_WAIT_TIME_MINUTES=$((DEPLOY_WAIT_TIME + 15))
-TOTAL_WAIT_TIME_SECONDS=$(((DEPLOY_WAIT_TIME + 15) * 60))
+TOTAL_WAIT_TIME_MINUTES=$((DEPLOY_WAIT_TIME))
+TOTAL_WAIT_TIME_SECONDS=$(((DEPLOY_WAIT_TIME) * 60))
 
 DEPLOYMENT_ID=`aws deploy create-deployment \
         --application-name "$deploy_app" \
@@ -177,6 +177,7 @@ DEPLOYMENT_ID=`aws deploy create-deployment \
   echo "waiting ${TOTAL_WAIT_TIME_MINUTES} minutes for the deploy to complete"
   sleep ${TOTAL_WAIT_TIME_SECONDS}
 
+  # WAIT will poll every 15 seconds until a successful state has been reached. This will exit with a return code of 255 after 120 failed checks.
   echo "checking for deploy completion..."     
   aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID" --region "$region"
 
