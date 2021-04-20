@@ -160,16 +160,16 @@ DEPLOY_WAIT_TIME=`aws deploy get-deployment-group \
     --query "deploymentGroupInfo.blueGreenDeploymentConfiguration.terminateBlueInstancesOnDeploymentSuccess.terminationWaitTimeInMinutes" \
     --output text`
 
-TOTAL_WAIT_TIME_MINUTES=$((DEPLOY_WAIT_TIME + 15))
-TOTAL_WAIT_TIME_SECONDS=$(((DEPLOY_WAIT_TIME + 15) * 60))
+TOTAL_WAIT_TIME_MINUTES=$((DEPLOY_WAIT_TIME))
+TOTAL_WAIT_TIME_SECONDS=$(((DEPLOY_WAIT_TIME) * 60))
 
 DEPLOYMENT_ID=`aws deploy create-deployment \
         --application-name "$deploy_app" \
         --deployment-group-name "$deploy_group" \
         --region "$region" \
-        --deployment-config-name CodeDeployDefault.ECSLinear10PercentEvery1Minutes \
-        --description "Events API Blue/Green Deploy" \
-        --revision '{"revisionType": "AppSpecContent", "appSpecContent": {"content": "{\"version\": 1, \"Resources\": [{\"TargetService\": {\"Type\": \"AWS::ECS::Service\", \"Properties\": {\"TaskDefinition\": \"'${NEW_TASKDEF}'\", \"LoadBalancerInfo\": {\"ContainerName\": \"'${container_name}'\", \"ContainerPort\": 3001}}}}]}"}}' \
+        --deployment-config-name "$deployment_config_name" \
+        --description "$service Blue/Green Deploy" \
+        --revision '{"revisionType": "AppSpecContent", "appSpecContent": {"content": "{\"version\": 1, \"Resources\": [{\"TargetService\": {\"Type\": \"AWS::ECS::Service\", \"Properties\": {\"TaskDefinition\": \"'${NEW_TASKDEF}'\", \"LoadBalancerInfo\": {\"ContainerName\": \"'${container_name}'\", \"ContainerPort\":'${container_port}'}}}}]}"}}' \
         --query "deploymentId" \
         --output text`
 
@@ -177,6 +177,7 @@ DEPLOYMENT_ID=`aws deploy create-deployment \
   echo "waiting ${TOTAL_WAIT_TIME_MINUTES} minutes for the deploy to complete"
   sleep ${TOTAL_WAIT_TIME_SECONDS}
 
+  # WAIT will poll every 15 seconds until a successful state has been reached. This will exit with a return code of 255 after 120 failed checks.
   echo "checking for deploy completion..."     
   aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID" --region "$region"
 
@@ -200,11 +201,16 @@ function ecs_deploy {
   local deploy_group=""
   local image=""
   local iam_role=""
+  local deployment_config_name=""
 
   while [[ $# > 0 ]]; do
     local key="$1"
 
     case "$key" in
+      --deployment_config_name)
+        deployment_config_name="$2"
+        shift
+        ;;
       --iam-role)
         iam_role="$2"
         shift
@@ -264,6 +270,10 @@ function ecs_deploy {
   assert_not_empty "--container_port" "$container_port"
   assert_not_empty "--deploy_group" "$deploy_group"
 
+  if [[ -z "$deployment_config_name" ]]; then
+    deployment_config_name="CodeDeployDefault.ECSLinear10PercentEvery1Minutes"
+  fi
+
   # Use specified IAM role or the one which comes from global env variables
   local AWS_ASSUME_ROLE=${iam_role:-${AWS_ROLE_TO_ASSUME_DURING_DEPLOY:-false}}
 
@@ -271,6 +281,7 @@ function ecs_deploy {
   echo "Region: $region"
   echo "Service: $service"
   echo "Image: $image"
+  echo "Deployment_config_name: $deployment_config_name"
   echo
 
 
@@ -294,6 +305,7 @@ function ecs_deploy {
 
   register_new_task_definition
   echo "New task definition: $NEW_TASKDEF";
+  assert_not_empty "NEW_TASKDEF" "$NEW_TASKDEF"
 
   echo "Create file $TASK_DEF_FILENAME"
   create_task_def_file
