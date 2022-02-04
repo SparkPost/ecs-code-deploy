@@ -64,7 +64,6 @@ function scale_ecs_cluster_blue_green {
  local readonly cluster="$cluster"
  local readonly region="$region"
  local readonly env="$env"
- local readonly profile="sparkposttest"
 
  num_ec2_boxes_to_scale
  echo "scaling ecs cluster $cluster by $num_ec2 host(s)"
