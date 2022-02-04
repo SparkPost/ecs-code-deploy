@@ -308,7 +308,6 @@ function ecs_deploy {
   assert_not_empty "--container_name" "$container_name"
   assert_not_empty "--container_port" "$container_port"
   assert_not_empty "--deploy_group" "$deploy_group"
-  assert_not_empty "--env" "$env"
 
   if [[ -z "$deployment_config_name" ]]; then
     deployment_config_name="CodeDeployDefault.ECSLinear10PercentEvery1Minutes"
@@ -332,8 +331,10 @@ function ecs_deploy {
     echo
   fi
 
-  echo "Growing ECS cluster for deploy"
-  scale_ecs_cluster_blue_green
+  if [[ "$env" ]]; then
+    echo "Growing ECS cluster for deploy"
+    scale_ecs_cluster_blue_green
+  fi
 
   echo "Getting current task definition for the service $service"
   get_current_task_definition
