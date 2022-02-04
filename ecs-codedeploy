@@ -34,11 +34,45 @@ function print_usage {
   echo -e "  --container_name\t\t\tName of Container to deploy"
   echo -e "  --container_port\t\t\tPort of the Container to deploy"
   echo -e "  --deploy_group\t\t\tGroup of the CodeDeploy Application"
+  echo -e "  --env\t\t\tENV of the service"
   echo
   echo
   echo "Examples:"
   echo
   echo "  ecs-codedeploy --cluster production --region us-west-2 --service backend --image 640673857988.dkr.ecr.eu-central-1.amazonaws.com/backend:v1.2.3"
+}
+
+#gets the number of EC2 boxes to scale by +1 based on cpu reservation of the service
+function num_ec2_boxes_to_scale() {
+  local readonly cluster="$cluster"
+  local readonly region="$region"
+  local readonly env="$env"
+  local readonly service="$service"
+
+  local readonly task_arn=$(aws ecs list-tasks --region $region --cluster $cluster --service-name $service --query taskArns[0] | jq -r)
+  local readonly num_tasks=$(aws ecs list-tasks --region $region --cluster $cluster --service-name $service | jq '.taskArns | length')
+  local readonly cpu_reservation=$(aws ecs describe-tasks --region $region --cluster $cluster --tasks $task_arn --query tasks[0].cpu | jq -r)
+  local readonly container_arn=$(aws ecs describe-tasks --region $region --cluster $cluster --tasks $task_arn --query tasks[0].containerInstanceArn | jq -r)
+  local readonly container_cpu=$(aws ecs describe-container-instances --region $region --cluster $cluster --container-instances $container_arn | jq '.containerInstances[0].registeredResources[0].integerValue')
+  local readonly num_cpus=$((container_cpu / 1024))
+
+  num_ec2=$(((((cpu_reservation*num_tasks) / 1024) / num_cpus)+1))
+}
+
+#scales the ecs cluster to blue green deploy
+function scale_ecs_cluster_blue_green {
+ local readonly cluster="$cluster"
+ local readonly region="$region"
+ local readonly env="$env"
+ local readonly profile="sparkposttest"
+
+ num_ec2_boxes_to_scale
+ echo "scaling ecs cluster $cluster by $num_ec2 host(s)"
+
+ local readonly payload='{"cluster_name":"'"$cluster"'","increase_by":'$num_ec2',"doit":true}'
+ echo $payload
+
+ aws lambda invoke --region $region --function-name "arn:aws:lambda:$region:728902271687:function:sre-cluster-grower-$env" --payload "$payload" output.txt --cli-binary-format raw-in-base64-out
 }
 
 function assert_not_empty {
@@ -178,10 +212,10 @@ DEPLOYMENT_ID=`aws deploy create-deployment \
   sleep ${TOTAL_WAIT_TIME_SECONDS}
 
   # WAIT will poll every 15 seconds until a successful state has been reached. This will exit with a return code of 255 after 120 failed checks.
-  echo "checking for deploy completion..."     
+  echo "checking for deploy completion..."
   aws deploy wait deployment-successful --deployment-id "$DEPLOYMENT_ID" --region "$region"
 
-  echo "deployment complete." 
+  echo "deployment complete."
 
 }
 
@@ -202,6 +236,7 @@ function ecs_deploy {
   local image=""
   local iam_role=""
   local deployment_config_name=""
+  local env=""
 
   while [[ $# > 0 ]]; do
     local key="$1"
@@ -247,6 +282,10 @@ function ecs_deploy {
         image="$2"
         shift
         ;;
+      --env)
+        env="$2"
+        shift
+        ;;
       --help)
         print_usage
         exit
@@ -269,6 +308,7 @@ function ecs_deploy {
   assert_not_empty "--container_name" "$container_name"
   assert_not_empty "--container_port" "$container_port"
   assert_not_empty "--deploy_group" "$deploy_group"
+  assert_not_empty "--env" "$env"
 
   if [[ -z "$deployment_config_name" ]]; then
     deployment_config_name="CodeDeployDefault.ECSLinear10PercentEvery1Minutes"
@@ -291,6 +331,9 @@ function ecs_deploy {
     echo "Assumed successfully"
     echo
   fi
+
+  echo "Growing ECS cluster for deploy"
+  scale_ecs_cluster_blue_green
 
   echo "Getting current task definition for the service $service"
   get_current_task_definition
